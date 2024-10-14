@@ -13,7 +13,6 @@ canvas {
   display: block !important;
   width: 100vw !important;
   height: 100vh !important;
-  background-image: radial-gradient(#666, #333);
   background-color: white;
 }
 
