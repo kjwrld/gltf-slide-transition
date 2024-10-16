@@ -1,22 +1,18 @@
 import * as THREE from "three";
-import { shaderMaterial } from "@react-three/drei";
 import { extend } from "@react-three/fiber";
 import BaseAnimationMaterial from "./BaseAnimationMaterial";
 
-// Define the uniforms and their types
 export interface SlideShaderUniforms {
   uTime: number;
   map: THREE.Texture;
 }
 
-// Define the shader properties
 export interface SlideShaderProps {
   uniforms: SlideShaderUniforms;
   vertexShader: string;
   fragmentShader: string;
 }
 
-// Create the shader properties
 const slideShaderProps: SlideShaderProps = {
   uniforms: {
     uTime: 0,
@@ -63,18 +59,13 @@ const slideShaderProps: SlideShaderProps = {
     }
   `,
 };
-const SlideShaderMaterial = shaderMaterial(
-  { ...slideShaderProps.uniforms },
-  slideShaderProps.vertexShader,
-  slideShaderProps.fragmentShader
-);
 
-class CustomSlideShaderMaterial extends BaseAnimationMaterial {
+class SlideShaderMaterial extends BaseAnimationMaterial {
   constructor(parameters: Partial<SlideShaderProps>) {
     super(parameters, slideShaderProps);
   }
 }
 
-extend({ CustomSlideShaderMaterial });
+extend({ SlideShaderMaterial });
 
-export default CustomSlideShaderMaterial;
+export default SlideShaderMaterial;
