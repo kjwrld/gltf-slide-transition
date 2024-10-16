@@ -5,9 +5,11 @@ class BaseAnimationMaterial extends THREE.ShaderMaterial {
   constructor(parameters: any, uniforms: any) {
     super();
 
-    Object.keys(parameters).forEach((key: string) => {
-      (this as any)[key] = parameters[key];
-    });
+    if (parameters) {
+      Object.keys(parameters).forEach((key: string) => {
+        (this as any)[key] = parameters[key];
+      });
+    }
 
     this.setValues(parameters);
     this.uniforms = THREE.UniformsUtils.merge([

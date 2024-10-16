@@ -1,6 +1,9 @@
 import { gsap } from "gsap";
 
-export function createTweenScrubber(tween: gsap.core.Tween, seekSpeed = 0.001) {
+export function createTweenScrubber(
+  tween: gsap.core.Tween | gsap.core.Timeline,
+  seekSpeed = 0.001
+) {
   let mouseDown = false;
   let _cx = 0;
 

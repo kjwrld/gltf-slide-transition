@@ -1,55 +1,72 @@
-import * as THREE from "three";
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
-import { gsap } from "gsap";
-import Slide from "./Slide";
-import { createTweenScrubber } from "./TweenScrubber";
+import Slide, { SlideRef } from "./Slide";
+import ProgressSlider from "./ProgressSlider";
 
 export default function App() {
-  // const slideRef1 = useRef<THREE.Mesh>(null);
-  // const slideRef2 = useRef<THREE.Mesh>(null);
+  const [progress, setProgress] = useState(0);
+  const slideRef1 = useRef<SlideRef>(null);
+  const slideRef2 = useRef<SlideRef>(null);
 
-  // useEffect(() => {
-  //   if (slideRef1.current && slideRef2.current) {
-  //     const material1 = slideRef1.current.material as CustomSlideShaderMaterial;
-  //     const material2 = slideRef2.current.material as CustomSlideShaderMaterial;
+  useEffect(() => {
+    const loadImage = (url: string): Promise<HTMLImageElement> => {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = "Anonymous";
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = url;
+      });
+    };
 
-  //     const tl = gsap.timeline({ repeat: -1, repeatDelay: 1.0, yoyo: true });
-  //     tl.to(
-  //       material1.uniforms.uTime,
-  //       { value: 3, duration: 3, ease: "power2.inOut" },
-  //       0
-  //     );
-  //     tl.to(
-  //       material2.uniforms.uTime,
-  //       { value: 3, duration: 3, ease: "power2.inOut" },
-  //       0
-  //     );
+    const setupSlides = async () => {
+      try {
+        const [img1, img2] = await Promise.all([
+          loadImage(
+            "https://s3-us-west-2.amazonaws.com/s.cdpn.io/175711/winter.jpg"
+          ),
+          loadImage(
+            "https://s3-us-west-2.amazonaws.com/s.cdpn.io/175711/spring.jpg"
+          ),
+        ]);
 
-  //     createTweenScrubber(tl as unknown as gsap.core.Tween);
-  //   }
-  // }, []);
+        if (slideRef1.current && slideRef2.current) {
+          slideRef1.current.setImage(img1);
+          slideRef2.current.setImage(img2);
+        }
+      } catch (error) {
+        console.error("Error loading images:", error);
+      }
+    };
+
+    setupSlides();
+  }, []);
+
+  const handleProgressChange = (newProgress: number) => {
+    setProgress(newProgress);
+  };
 
   return (
-    <div style={{ width: "100vw", height: "100vh" }}>
+    <div className="w-full h-screen">
       <Canvas camera={{ position: [0, 0, 100], fov: 100 }}>
         <OrbitControls enableZoom={true} />
         <Slide
-          // ref={slideRef1}
-          imageUrl="https://s3-us-west-2.amazonaws.com/s.cdpn.io/175711/winter.jpg"
+          ref={slideRef1}
           width={100}
           height={60}
           animationPhase="out"
+          progress={progress}
         />
         <Slide
-          // ref={slideRef2}
-          imageUrl="https://s3-us-west-2.amazonaws.com/s.cdpn.io/175711/spring.jpg"
+          ref={slideRef2}
           width={100}
           height={60}
           animationPhase="in"
+          progress={progress}
         />
       </Canvas>
+      <ProgressSlider value={progress} onChange={handleProgressChange} />
     </div>
   );
 }
