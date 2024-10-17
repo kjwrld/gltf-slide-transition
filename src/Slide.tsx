@@ -7,11 +7,13 @@ import BAS from "./utils/BAS";
 const SlideShaderMaterial = shaderMaterial(
   {
     uTime: 0,
+    uProgress: 0,
     map: new THREE.Texture(),
   },
   // vertex shader
   `
     uniform float uTime;
+    uniform float uProgress;
     attribute vec2 aAnimation;
     attribute vec3 aStartPosition;
     attribute vec3 aControl0;
@@ -34,7 +36,7 @@ const SlideShaderMaterial = shaderMaterial(
       
       float tDelay = aAnimation.x;
       float tDuration = aAnimation.y;
-      float tTime = clamp(uTime - tDelay, 0.0, tDuration);
+      float tTime = clamp(uProgress * 3.0 - tDelay, 0.0, tDuration);
       float tProgress = easeInOutCubic(tTime / tDuration);
 
       vec3 newPosition = cubicBezier(aStartPosition, aControl0, aControl1, aEndPosition, tProgress);
@@ -68,6 +70,7 @@ interface SlideProps {
   width: number;
   height: number;
   animationPhase: "in" | "out";
+  progress: number;
 }
 
 function getControlPoint0(centroid: THREE.Vector3) {
@@ -89,7 +92,7 @@ function getControlPoint1(centroid: THREE.Vector3) {
 }
 
 const Slide = forwardRef<THREE.Mesh, SlideProps>(
-  ({ imageUrl, width, height, animationPhase }, ref) => {
+  ({ imageUrl, width, height, animationPhase, progress }, ref) => {
     const meshRef = useRef<THREE.Mesh>(null);
     const materialRef = useRef<THREE.ShaderMaterial>(null);
 
@@ -218,9 +221,9 @@ const Slide = forwardRef<THREE.Mesh, SlideProps>(
       [imageUrl]
     );
 
-    useFrame((state) => {
+    useFrame(() => {
       if (materialRef.current) {
-        materialRef.current.uniforms.uTime.value = state.clock.getElapsedTime();
+        materialRef.current.uniforms.uProgress.value = progress;
       }
     });
 
@@ -230,6 +233,7 @@ const Slide = forwardRef<THREE.Mesh, SlideProps>(
           ref={materialRef}
           map={texture}
           uniforms-uTime-value={0}
+          uniforms-uProgress-value={progress}
         />
       </mesh>
     );
