@@ -1,4 +1,4 @@
-import React, { useRef, useMemo } from "react";
+import React, { useRef, useMemo, forwardRef, useImperativeHandle } from "react";
 import * as THREE from "three";
 import { extend, useFrame, ThreeElements } from "@react-three/fiber";
 import { shaderMaterial } from "@react-three/drei";
@@ -88,143 +88,152 @@ function getControlPoint1(centroid: THREE.Vector3) {
   );
 }
 
-const Slide: React.FC<SlideProps> = ({
-  imageUrl,
-  width,
-  height,
-  animationPhase,
-}) => {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const materialRef = useRef<THREE.ShaderMaterial>(null);
+const Slide = forwardRef<THREE.Mesh, SlideProps>(
+  ({ imageUrl, width, height, animationPhase }, ref) => {
+    const meshRef = useRef<THREE.Mesh>(null);
+    const materialRef = useRef<THREE.ShaderMaterial>(null);
 
-  const geometry = useMemo(() => {
-    const plane = new THREE.PlaneGeometry(width, height, width * 2, height * 2);
-    BAS.Utils.separateFaces(plane);
+    useImperativeHandle(ref, () => meshRef.current as THREE.Mesh, []);
 
-    const aAnimation = new Float32Array(plane.attributes.position.count * 2);
-    const aStartPosition = new Float32Array(
-      plane.attributes.position.count * 3
-    );
-    const aControl0 = new Float32Array(plane.attributes.position.count * 3);
-    const aControl1 = new Float32Array(plane.attributes.position.count * 3);
-    const aEndPosition = new Float32Array(plane.attributes.position.count * 3);
-
-    const minDuration = 0.8;
-    const maxDuration = 1.2;
-    const maxDelayX = 0.9;
-    const maxDelayY = 0.125;
-    const stretch = 0.11;
-
-    const startPosition = new THREE.Vector3();
-    const control0 = new THREE.Vector3();
-    const control1 = new THREE.Vector3();
-    const endPosition = new THREE.Vector3();
-
-    for (
-      let faceIndex = 0, i = 0, i2 = 0, i3 = 0;
-      faceIndex < plane.attributes.position.count / 3;
-      faceIndex++, i += 3, i2 += 6, i3 += 9
-    ) {
-      const centroid = BAS.Utils.computeCentroid(plane, faceIndex);
-
-      // animation
-      const duration = THREE.MathUtils.randFloat(minDuration, maxDuration);
-      const delayX = THREE.MathUtils.mapLinear(
-        centroid.x,
-        -width * 0.5,
-        width * 0.5,
-        0.0,
-        maxDelayX
+    const geometry = useMemo(() => {
+      const plane = new THREE.PlaneGeometry(
+        width,
+        height,
+        width * 2,
+        height * 2
       );
-      const delayY =
-        animationPhase === "in"
-          ? THREE.MathUtils.mapLinear(
-              Math.abs(centroid.y),
-              0,
-              height * 0.5,
-              0.0,
-              maxDelayY
-            )
-          : THREE.MathUtils.mapLinear(
-              Math.abs(centroid.y),
-              0,
-              height * 0.5,
-              maxDelayY,
-              0.0
-            );
+      BAS.Utils.separateFaces(plane);
 
-      for (let v = 0; v < 6; v += 2) {
-        aAnimation[i2 + v] =
-          delayX + delayY + Math.random() * stretch * duration;
-        aAnimation[i2 + v + 1] = duration;
+      const aAnimation = new Float32Array(plane.attributes.position.count * 2);
+      const aStartPosition = new Float32Array(
+        plane.attributes.position.count * 3
+      );
+      const aControl0 = new Float32Array(plane.attributes.position.count * 3);
+      const aControl1 = new Float32Array(plane.attributes.position.count * 3);
+      const aEndPosition = new Float32Array(
+        plane.attributes.position.count * 3
+      );
+
+      const minDuration = 0.8;
+      const maxDuration = 1.2;
+      const maxDelayX = 0.9;
+      const maxDelayY = 0.125;
+      const stretch = 0.11;
+
+      const startPosition = new THREE.Vector3();
+      const control0 = new THREE.Vector3();
+      const control1 = new THREE.Vector3();
+      const endPosition = new THREE.Vector3();
+
+      for (
+        let faceIndex = 0, i = 0, i2 = 0, i3 = 0;
+        faceIndex < plane.attributes.position.count / 3;
+        faceIndex++, i += 3, i2 += 6, i3 += 9
+      ) {
+        const centroid = BAS.Utils.computeCentroid(plane, faceIndex);
+
+        // animation
+        const duration = THREE.MathUtils.randFloat(minDuration, maxDuration);
+        const delayX = THREE.MathUtils.mapLinear(
+          centroid.x,
+          -width * 0.5,
+          width * 0.5,
+          0.0,
+          maxDelayX
+        );
+        const delayY =
+          animationPhase === "in"
+            ? THREE.MathUtils.mapLinear(
+                Math.abs(centroid.y),
+                0,
+                height * 0.5,
+                0.0,
+                maxDelayY
+              )
+            : THREE.MathUtils.mapLinear(
+                Math.abs(centroid.y),
+                0,
+                height * 0.5,
+                maxDelayY,
+                0.0
+              );
+
+        for (let v = 0; v < 6; v += 2) {
+          aAnimation[i2 + v] =
+            delayX + delayY + Math.random() * stretch * duration;
+          aAnimation[i2 + v + 1] = duration;
+        }
+
+        // positions
+        endPosition.copy(centroid);
+        startPosition.copy(centroid);
+
+        if (animationPhase === "in") {
+          control0.copy(centroid).sub(getControlPoint0(centroid));
+          control1.copy(centroid).sub(getControlPoint1(centroid));
+        } else {
+          control0.copy(centroid).add(getControlPoint0(centroid));
+          control1.copy(centroid).add(getControlPoint1(centroid));
+        }
+
+        for (let v = 0; v < 9; v += 3) {
+          aStartPosition[i3 + v] = startPosition.x;
+          aStartPosition[i3 + v + 1] = startPosition.y;
+          aStartPosition[i3 + v + 2] = startPosition.z;
+
+          aControl0[i3 + v] = control0.x;
+          aControl0[i3 + v + 1] = control0.y;
+          aControl0[i3 + v + 2] = control0.z;
+
+          aControl1[i3 + v] = control1.x;
+          aControl1[i3 + v + 1] = control1.y;
+          aControl1[i3 + v + 2] = control1.z;
+
+          aEndPosition[i3 + v] = endPosition.x;
+          aEndPosition[i3 + v + 1] = endPosition.y;
+          aEndPosition[i3 + v + 2] = endPosition.z;
+        }
       }
 
-      // positions
-      endPosition.copy(centroid);
-      startPosition.copy(centroid);
+      plane.setAttribute(
+        "aAnimation",
+        new THREE.BufferAttribute(aAnimation, 2)
+      );
+      plane.setAttribute(
+        "aStartPosition",
+        new THREE.BufferAttribute(aStartPosition, 3)
+      );
+      plane.setAttribute("aControl0", new THREE.BufferAttribute(aControl0, 3));
+      plane.setAttribute("aControl1", new THREE.BufferAttribute(aControl1, 3));
+      plane.setAttribute(
+        "aEndPosition",
+        new THREE.BufferAttribute(aEndPosition, 3)
+      );
 
-      if (animationPhase === "in") {
-        control0.copy(centroid).sub(getControlPoint0(centroid));
-        control1.copy(centroid).sub(getControlPoint1(centroid));
-      } else {
-        control0.copy(centroid).add(getControlPoint0(centroid));
-        control1.copy(centroid).add(getControlPoint1(centroid));
-      }
+      return plane;
+    }, [width, height, animationPhase]);
 
-      for (let v = 0; v < 9; v += 3) {
-        aStartPosition[i3 + v] = startPosition.x;
-        aStartPosition[i3 + v + 1] = startPosition.y;
-        aStartPosition[i3 + v + 2] = startPosition.z;
-
-        aControl0[i3 + v] = control0.x;
-        aControl0[i3 + v + 1] = control0.y;
-        aControl0[i3 + v + 2] = control0.z;
-
-        aControl1[i3 + v] = control1.x;
-        aControl1[i3 + v + 1] = control1.y;
-        aControl1[i3 + v + 2] = control1.z;
-
-        aEndPosition[i3 + v] = endPosition.x;
-        aEndPosition[i3 + v + 1] = endPosition.y;
-        aEndPosition[i3 + v + 2] = endPosition.z;
-      }
-    }
-
-    plane.setAttribute("aAnimation", new THREE.BufferAttribute(aAnimation, 2));
-    plane.setAttribute(
-      "aStartPosition",
-      new THREE.BufferAttribute(aStartPosition, 3)
+    const texture = useMemo(
+      () => new THREE.TextureLoader().load(imageUrl),
+      [imageUrl]
     );
-    plane.setAttribute("aControl0", new THREE.BufferAttribute(aControl0, 3));
-    plane.setAttribute("aControl1", new THREE.BufferAttribute(aControl1, 3));
-    plane.setAttribute(
-      "aEndPosition",
-      new THREE.BufferAttribute(aEndPosition, 3)
+
+    useFrame((state) => {
+      if (materialRef.current) {
+        materialRef.current.uniforms.uTime.value = state.clock.getElapsedTime();
+      }
+    });
+
+    return (
+      <mesh ref={meshRef} geometry={geometry}>
+        <slideShaderMaterial
+          ref={materialRef}
+          map={texture}
+          uniforms-uTime-value={0}
+        />
+      </mesh>
     );
-
-    return plane;
-  }, [width, height, animationPhase]);
-
-  const texture = useMemo(
-    () => new THREE.TextureLoader().load(imageUrl),
-    [imageUrl]
-  );
-
-  useFrame((state) => {
-    if (materialRef.current) {
-      materialRef.current.uniforms.uTime.value = state.clock.getElapsedTime();
-    }
-  });
-
-  return (
-    <mesh ref={meshRef} geometry={geometry}>
-      <slideShaderMaterial
-        ref={materialRef}
-        map={texture}
-        uniforms-uTime-value={0}
-      />
-    </mesh>
-  );
-};
+  }
+);
 
 export default Slide;
