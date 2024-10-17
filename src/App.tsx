@@ -24,7 +24,7 @@ export default function App() {
           width={100}
           height={60}
           animationPhase="out"
-          progress={progress}
+          // progress={progress}
         />
         <Slide
           ref={slideRef2}
@@ -32,7 +32,7 @@ export default function App() {
           width={100}
           height={60}
           animationPhase="in"
-          progress={progress}
+          // progress={progress}
         />
       </Canvas>
       <SlideProgressSlider progress={progress} onChange={handleSliderChange} />
