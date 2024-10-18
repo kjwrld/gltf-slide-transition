@@ -1,14 +1,7 @@
-import React, {
-  useRef,
-  useMemo,
-  forwardRef,
-  useImperativeHandle,
-  useEffect,
-} from "react";
+import React, { useRef, useMemo, forwardRef, useImperativeHandle } from "react";
 import * as THREE from "three";
 import { extend, useFrame, ThreeElements } from "@react-three/fiber";
 import { shaderMaterial } from "@react-three/drei";
-import { gsap } from "gsap";
 import BAS from "./utils/BAS";
 
 const SlideShaderMaterial = shaderMaterial(
@@ -55,8 +48,7 @@ const SlideShaderMaterial = shaderMaterial(
     varying vec2 vUv;
 
     void main() {
-      vec4 texColor = texture2D(map, vUv);
-      gl_FragColor = texColor;
+      gl_FragColor = texture2D(map, vUv);
     }
   `
 );
@@ -71,6 +63,13 @@ declare module "@react-three/fiber" {
   }
 }
 
+type SlideShaderMaterialImpl = {
+  uniforms: {
+    uTime: { value: number };
+    map: { value: THREE.Texture };
+  };
+} & THREE.ShaderMaterial;
+
 interface SlideProps {
   imageUrl: string;
   width: number;
@@ -80,26 +79,28 @@ interface SlideProps {
 
 function getControlPoint0(centroid: THREE.Vector3) {
   const signY = Math.sign(centroid.y);
-  return new THREE.Vector3(
+  const point = new THREE.Vector3(
     THREE.MathUtils.randFloat(0.1, 0.3) * 50,
     signY * THREE.MathUtils.randFloat(0.1, 0.3) * 70,
     THREE.MathUtils.randFloatSpread(20)
   );
+  return point;
 }
 
 function getControlPoint1(centroid: THREE.Vector3) {
   const signY = Math.sign(centroid.y);
-  return new THREE.Vector3(
+  const point = new THREE.Vector3(
     THREE.MathUtils.randFloat(0.3, 0.6) * 50,
     -signY * THREE.MathUtils.randFloat(0.3, 0.6) * 70,
     THREE.MathUtils.randFloatSpread(20)
   );
+  return point;
 }
 
 const Slide = forwardRef<THREE.Mesh, SlideProps>(
   ({ imageUrl, width, height, animationPhase }, ref) => {
     const meshRef = useRef<THREE.Mesh>(null);
-    const materialRef = useRef<THREE.ShaderMaterial>(null);
+    const materialRef = useRef<SlideShaderMaterialImpl>(null);
 
     useImperativeHandle(ref, () => meshRef.current as THREE.Mesh, []);
 
@@ -133,9 +134,18 @@ const Slide = forwardRef<THREE.Mesh, SlideProps>(
       const control1 = new THREE.Vector3();
       const endPosition = new THREE.Vector3();
 
+      console.log("Geometry setup", {
+        vertexCount: plane.attributes.position.count,
+        faceCount: plane.attributes.position.count / 3,
+      });
+
       for (let i = 0; i < plane.attributes.position.count; i += 3) {
         const face = Math.floor(i / 3);
         const centroid = BAS.Utils.computeCentroid(plane, face);
+
+        console.log(`Processing face ${face}`, {
+          centroid: centroid.toArray(),
+        });
 
         // animation
         const duration = THREE.MathUtils.randFloat(minDuration, maxDuration);
@@ -163,6 +173,8 @@ const Slide = forwardRef<THREE.Mesh, SlideProps>(
                 0.0
               );
 
+        console.log("Animation parameters", { duration, delayX, delayY });
+
         for (let v = 0; v < 3; v++) {
           const vIndex = i + v;
           aAnimation[vIndex * 2] =
@@ -181,6 +193,13 @@ const Slide = forwardRef<THREE.Mesh, SlideProps>(
           control0.copy(centroid).add(getControlPoint0(centroid));
           control1.copy(centroid).add(getControlPoint1(centroid));
         }
+
+        console.log("Position calculations", {
+          startPosition: startPosition.toArray(),
+          control0: control0.toArray(),
+          control1: control1.toArray(),
+          endPosition: endPosition.toArray(),
+        });
 
         for (let v = 0; v < 3; v++) {
           const vIndex = i + v;
@@ -212,6 +231,14 @@ const Slide = forwardRef<THREE.Mesh, SlideProps>(
         new THREE.BufferAttribute(aEndPosition, 3)
       );
 
+      console.log("Final geometry attributes", {
+        aAnimationSample: aAnimation.slice(0, 6),
+        aStartPositionSample: aStartPosition.slice(0, 9),
+        aControl0Sample: aControl0.slice(0, 9),
+        aControl1Sample: aControl1.slice(0, 9),
+        aEndPositionSample: aEndPosition.slice(0, 9),
+      });
+
       return plane;
     }, [width, height, animationPhase]);
 
@@ -220,22 +247,11 @@ const Slide = forwardRef<THREE.Mesh, SlideProps>(
       [imageUrl]
     );
 
-    useEffect(() => {
+    useFrame((state) => {
       if (materialRef.current) {
-        const duration = 3.0;
-        gsap.fromTo(
-          materialRef.current.uniforms.uTime,
-          { value: 0 },
-          {
-            value: duration,
-            duration: duration,
-            ease: "power0.inOut",
-            repeat: -1,
-            yoyo: true,
-          }
-        );
+        materialRef.current.uniforms.uTime.value = state.clock.getElapsedTime();
       }
-    }, []);
+    });
 
     return (
       <mesh ref={meshRef} geometry={geometry}>
@@ -250,4 +266,5 @@ const Slide = forwardRef<THREE.Mesh, SlideProps>(
   }
 );
 
+export type { SlideShaderMaterialImpl };
 export default Slide;

@@ -21,6 +21,7 @@ export const Utils = {
       "position",
       new THREE.Float32BufferAttribute(newPosition, 3)
     );
+    console.log(geometry.attributes);
     geometry.setIndex(newIndex);
   },
 
