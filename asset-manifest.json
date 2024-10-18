@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/gltf-slide-transition/static/css/main.e6c13ad2.css",
+    "main.js": "/gltf-slide-transition/static/js/main.8a96c604.js",
+    "index.html": "/gltf-slide-transition/index.html",
+    "main.e6c13ad2.css.map": "/gltf-slide-transition/static/css/main.e6c13ad2.css.map",
+    "main.8a96c604.js.map": "/gltf-slide-transition/static/js/main.8a96c604.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.e6c13ad2.css",
+    "static/js/main.8a96c604.js"
+  ]
+}
